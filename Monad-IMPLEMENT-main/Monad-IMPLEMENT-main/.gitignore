@@ -1,0 +1,9 @@
+node_modules
+.env
+.next
+contracts/out
+contracts/cache
+contracts/broadcast
+*.tsbuildinfo
+apps/web/tests/.server.log
+.vercel

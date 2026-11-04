@@ -1,0 +1,48 @@
+# Local agent memory
+CLAUDE.md
+.claude/settings.local.json
+
+# Secrets — never commit (template .env.example IS committed)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+keystore/
+
+# Node / pnpm
+node_modules/
+dist/
+.pnpm-store/
+*.tsbuildinfo
+
+# Next.js / Vercel
+.next/
+.vercel/
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/foundry-pp/
+contracts/broadcast/
+# Local anvil-fork deployments reuse chainId 10143 and would masquerade as the real
+# testnet deploy. The real one is committed deliberately, not by an untracked drop.
+deployments/*.json
+!deployments/README.md
+
+# Test / coverage
+coverage/
+lcov.info
+playwright-report/
+test-results/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+next-env.d.ts
+census.json
+
+# Written by `next dev`
+apps/web/AGENTS.md

@@ -1,0 +1,22 @@
+{
+  "name": "@grounded/seed",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Demo data (anvil fork, or a live chain with SEED_FUNDER_KEY): an honest agent, a Sybil-inflated agent, and a rejected wash rating",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "census": "tsx src/census.ts",
+    "gas": "tsx src/gas.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sajalydv/grounded-sdk": "workspace:*",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.0"
+  }
+}
