@@ -11,6 +11,126 @@ GigTrust uses Grounded as an onchain dependency. Grounded and GigTrust were both
 
 ---
 
+## Architecture
+
+### Grounded
+
+Grounded verifies reviewer passkeys and ties each counted rating to an onchain payment receipt.
+
+```mermaid
+flowchart TB
+    subgraph Client["Reviewer side"]
+        BROWSER["Browser passkey<br/>(WebAuthn / ox)"]
+        AGENTSW["Headless agent<br/>(software authenticator)"]
+    end
+
+    subgraph Ours["Grounded contracts — no owner, no admin, no upgrade"]
+        RTR["ReceiptRouter<br/>pay · payWithAuthorization"]
+        RCP["ReceiptRegistry<br/>one receipt = one rating"]
+        REV["ReviewerRegistry<br/>address ↔ P256 passkey"]
+        GRD["GroundedReputation<br/>ground · scoreOf · meets · sweepRevoked"]
+        SCORE["ScoringLib<br/>histogram · weight · median"]
+        ADPT["Erc8004Adapter<br/>the only file that knows<br/>the feedback encoding"]
+    end
+
+    subgraph External["Monad Testnet 10143 — not ours"]
+        ID8["ERC-8004 Identity"]
+        RP8["ERC-8004 Reputation"]
+        USDC["USDC (EIP-3009)"]
+        P256["P256 precompile 0x0100"]
+    end
+
+    subgraph Offchain["Off chain — all of this is deletable"]
+        SDK["@sajalydv/grounded-sdk"]
+        PAYWALL["402 paywall middleware"]
+        WEB["Explorer · playground · docs"]
+        IDX["Envio indexer"]
+    end
+
+    BROWSER --> REV
+    AGENTSW --> REV
+    REV --> P256
+    GRD --> P256
+
+    RTR -->|transfer| USDC
+    RTR -->|getAgentWallet| ID8
+    RTR -->|issue| RCP
+    GRD -->|consume| RCP
+    GRD -->|keyOf| REV
+    GRD -->|owner · approved · wallet| ID8
+    GRD --> ADPT --> RP8
+    GRD --> SCORE
+
+    SDK -.->|read| GRD
+    PAYWALL -.-> RTR
+    WEB -.-> SDK
+    IDX -.->|events| GRD
+```
+
+[See the Grounded architecture and workflows](./GroundedMain-ARCH/MONAD10K-main/README.md#architecture).
+
+### GigTrust
+
+GigTrust uses Grounded to check freelancer scores and issue payment receipts that let clients rate completed jobs.
+
+```mermaid
+flowchart TB
+    subgraph Users
+        C["Client<br/>(wallet + passkey)"]
+        F["Freelancer<br/>(wallet, ERC-8004 agent)"]
+        A["Arbiter<br/>(optional, per job)"]
+    end
+
+    subgraph Web["apps/web — Next.js"]
+        UI["Pages<br/>/jobs · /jobs/[id] · /jobs/new<br/>/freelancers/[agentId] · /me"]
+        API["API routes<br/>/api/jobs · /api/jobs/[id]/proposals"]
+        SDK["Grounded SDK<br/>score · rate · BrowserPasskey"]
+    end
+
+    DB[("Postgres<br/>job text + signed proposals")]
+
+    subgraph Monad["Monad Testnet (chain 10143)"]
+        ESC["GigEscrow<br/>(this repo)"]
+        subgraph G["Grounded (dependency, unmodified)"]
+            RR["ReceiptRouter"]
+            REG["ReceiptRegistry"]
+            GR["GroundedReputation"]
+            REV["ReviewerRegistry<br/>(passkeys)"]
+        end
+        subgraph E["ERC-8004"]
+            ID["IdentityRegistry<br/>(agents, payout wallets)"]
+            REP["ReputationRegistry<br/>(raw feedback)"]
+        end
+        USDC["USDC<br/>(EIP-3009)"]
+    end
+
+    C --> UI
+    F --> UI
+    A --> UI
+    UI --> API
+    API --> DB
+    API -- "verify proposal signer<br/>is agent operator" --> ID
+    UI -- "wallet txs" --> ESC
+    UI --> SDK
+    SDK -- "read scores" --> GR
+    SDK -- "rate" --> REP
+    SDK -- "ground rating" --> GR
+
+    ESC -- "meets(agent, minScore, minReviewers)" --> GR
+    ESC -- "owner / operator / payout wallet" --> ID
+    ESC -- "payWithAuthorization" --> RR
+    ESC -- "hold + pay out" --> USDC
+    RR -- "pull from client" --> USDC
+    RR -- "issue receipt" --> REG
+    GR -- "consume receipt" --> REG
+    GR -- "check passkey" --> REV
+    GR -- "read feedback" --> REP
+```
+
+[See the GigTrust architecture and workflows](./Monad-IMPLEMENT-main/Monad-IMPLEMENT-main/README.md#architecture).
+
+---
+
 ## Contract addresses (Monad Testnet, chain 10143)
 
 Explorer link format: `https://testnet.monadscan.com/address/<address>#code`
